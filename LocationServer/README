@@ -1,0 +1,9 @@
+The HTTP server was designed using Java servlet technology for
+simplicity.
+
+It is an Eclipse Dynamic Web Project. The source code can be run easily
+in Eclipse. Exporting it as a .war file and putting into a servlet
+container like Apache Tomcat is relatively straightforward. 
+You would compile the server and run it in Apache Tomcat like any kind of servlet.
+
+If you plan on using the code or have question, email frankw at cs dot stanford dot edu. This code does not have support, but I will try my best to answer your questions.
