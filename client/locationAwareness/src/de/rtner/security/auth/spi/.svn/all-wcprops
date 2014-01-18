@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi
+END
+Base64Coder.java
+K 25
+svn:wc:ra_dav:version-url
+V 132
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/Base64Coder.java
+END
+PBKDF2HexFormatter.java
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/PBKDF2HexFormatter.java
+END
+MacBasedPRF.java
+K 25
+svn:wc:ra_dav:version-url
+V 132
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/MacBasedPRF.java
+END
+PRF.java
+K 25
+svn:wc:ra_dav:version-url
+V 124
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/PRF.java
+END
+PBKDF2.java
+K 25
+svn:wc:ra_dav:version-url
+V 127
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/PBKDF2.java
+END
+BinTools.java
+K 25
+svn:wc:ra_dav:version-url
+V 129
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/BinTools.java
+END
+PBKDF2Formatter.java
+K 25
+svn:wc:ra_dav:version-url
+V 136
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/PBKDF2Formatter.java
+END
+PBKDF2Parameters.java
+K 25
+svn:wc:ra_dav:version-url
+V 137
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/PBKDF2Parameters.java
+END
+PBKDF2Engine.java
+K 25
+svn:wc:ra_dav:version-url
+V 133
+/~dabo/svn/frankwang/!svn/ver/64/ProximityDetector2/Kina_workspace/locationAwareness/src/de/rtner/security/auth/spi/PBKDF2Engine.java
+END

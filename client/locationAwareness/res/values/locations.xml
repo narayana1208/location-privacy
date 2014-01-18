@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array
+        name="userLocations_array">
+        <item>37424433</item>
+        <item>-122157665</item>
+        <item>37424433</item>
+    </string-array>
+</resources>

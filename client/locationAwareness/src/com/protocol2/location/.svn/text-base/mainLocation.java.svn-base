@@ -1,0 +1,414 @@
+package com.protocol2.location;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.OutputStreamWriter;
+import java.io.StreamCorruptedException;
+import java.math.BigInteger;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+
+import javax.crypto.KeyAgreement;
+import javax.crypto.spec.DHPublicKeySpec;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import android.app.ListActivity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ListView;
+
+import com.facebook.android.Facebook;
+
+
+public class mainLocation extends ListActivity {
+    // Called when the activity is first created. */
+	
+	private ExtendedCheckBoxListAdapter friendsList;
+	private Facebook mFacebook = new Facebook();
+	private boolean displayedCorrectly = false; // to keep track if friends was properly displayed or not
+	
+	
+	private SharedPreferences.Editor meEditor;
+	
+	/** Called when the activity is first created. */
+
+	@Override
+
+	public void onCreate(Bundle savedInstanceState) {
+
+	    super.onCreate(savedInstanceState);
+	    setContentView(R.layout.friendscreen);
+	   
+	    // Build the list adapter
+	    friendsList = ExtendedCheckBoxListAdapter.getInstance(getApplicationContext());
+	   
+	    // Add friends from facebook:
+	    SessionStore.restore(mFacebook, getApplicationContext());
+	    
+	    
+	    // --- STORAGE: Saved Preferences method of storing variables ----
+	   
+	    
+	    // place in random locations for gps locations
+	    // set up a "preference" that will store the latitude and longitude and grid size
+	    SharedPreferences latitude = getSharedPreferences("savedLatitude", MODE_PRIVATE); 
+	    SharedPreferences.Editor latitudeEditor = latitude.edit();
+	    latitudeEditor.putString("savedLatitude", new String("37424433"));
+	    latitudeEditor.commit();
+	    SharedPreferences longitude = getSharedPreferences("savedLongitude", MODE_PRIVATE);
+	    SharedPreferences.Editor longitudeEditor = longitude.edit();
+	    longitudeEditor.putString("savedLongitude", new String("-122157665"));
+	    longitudeEditor.commit();
+	    SharedPreferences gridProximity = getSharedPreferences("gridProximity", MODE_PRIVATE); 
+	    SharedPreferences.Editor gridEditor = gridProximity.edit();
+	    gridEditor.putInt("gridProximity", 100); // save the default grid size as 100
+	    gridEditor.commit();
+	    
+	    SharedPreferences myID = getSharedPreferences("myID", MODE_PRIVATE); 
+	    meEditor = myID.edit();
+	    meEditor.putLong("myID", 0); // save the default user id as 0
+	    meEditor.commit();
+	    
+	    
+		runOnUiThread(new Runnable() {
+		@Override  
+		public void run() {
+		    
+			//Public keys of friends are placed in a file that is accessed after friend list is displayed
+			// NOT SURE IF THIS FILE IS NEEDED ANYMORE SINCE INFORMATION IS STORED IN GLOBAL ARRAY OF FRIEND OBJECTS
+			FileOutputStream fOut = null;
+		    OutputStreamWriter osw = null;
+		    
+	   	try
+	   	{
+	   		Log.d("MAIN", "Building friend array and doing key exchanges.");
+	   		// set up file that will hold the websites of all the friends
+	   		fOut = openFileOutput("public.dat", Context.MODE_PRIVATE);
+			osw = new OutputStreamWriter(fOut);
+			
+	   		// get the friends who have registered with this application
+	   		Bundle friends_params = new Bundle();
+	        friends_params.putString("method", "friends.getAppUsers");
+	        String response = mFacebook.request(friends_params);
+	        Log.d("mainLocation.java", response);
+  			
+	        // get the name and website of the friends who we just retrieved
+	        Bundle urls_params = new Bundle();
+	        urls_params.putString("method", "users.getInfo");
+	        urls_params.putString("uids", response);
+	        urls_params.putString("fields", "name,website");
+	        String resp = mFacebook.request(urls_params);
+	        Log.d("mainLocation.java", "Facebook friends information: " + resp);
+
+	        // convert response into an array so we can extract the fields
+	        JSONArray appFriendArray = new JSONArray(resp);
+
+	        // store the number of friends we have
+	        int entries = 1 + appFriendArray.length();
+			osw.write(Integer.toString(entries));
+			
+			
+			//Extracting the public key from the website info of the friends.
+			//Currently the app looks for the first url that has a 'key' field and extracts its value
+			// this is extracting my info/key:
+			JSONObject me = new JSONObject(mFacebook.request("me")); // get the user's (me) info
+			Log.d("mainLocation.java", me.toString());
+			// Save my id in a shared preference:
+			long idNum = ( Long.valueOf(me.getString("id")) ).longValue();
+			meEditor.putLong("myID", idNum);
+			meEditor.commit();
+			
+			String website;
+			try { website = me.getString("website"); } 
+			catch (Exception e) { System.err.println("Error getting my wesbite"); website = "www.fail.com"; }
+			String websites[] = website.split("\n");
+			String key = null;
+			for(String w:websites){
+				if(w.contains("key=")){
+					key = (String) w.subSequence(w.indexOf("key=")+4, w.length());
+				}
+			}
+			
+			osw.write("\n" + me.getString("id") + "," + me.getString("name") + "," + key); // store my own public key
+			
+			Log.d("mainLocation.java", "Number of friends retrieved: " + appFriendArray.length());
+	        // add each friend to the file that will hold each friend's id, name, and public key so that later
+			// on keys can be exchanged
+  			for( int i = 0; i < appFriendArray.length(); i++ ){
+  				
+	   	    	String newFriendName = (appFriendArray.getJSONObject(i)).getString("name");
+	   	    	long newFriendID =  Long.valueOf( appFriendArray.getJSONObject(i).getString("uid") , 10 ) ;
+	   	    	Friend newFriend = new Friend(newFriendName, newFriendID); // create a new Friend.class
+	   	    	
+	   	    	
+	   	    	try { website = (appFriendArray.getJSONObject(i)).getString("website"); } 
+				catch (Exception e) { System.err.println("Error getting a wesbite"); website = "www."+i+".com"; }
+				websites = website.split("\n");
+				
+				key = null;
+				for(String w:websites){
+					if(w.contains("key=")){
+						key = (String) w.subSequence(w.indexOf("key=")+4, w.length());
+						osw.write("\n" + (appFriendArray.getJSONObject(i)).getString("uid") + "," + newFriendName + "," + key);
+						newFriend.setPublicKey(key); // set the new friend's website (save his/her public key)
+					}
+				}
+				friendsList.addFriend(newFriend);
+	   	    	//
+	   	    }
+  			
+  		
+  			// Bind it to the activity! (to display the list)
+   		    setListAdapter(friendsList);
+   		    
+   		 displayedCorrectly = true;
+   		 
+   		    osw.write("\n");
+			osw.close();
+			fOut.close();
+	    		  
+	 	}
+	    catch (Exception e)
+	    {
+	    	Log.d("Facebook: get friends", "error getting friends");
+	    	e.printStackTrace();
+	    	// Restart the logged in process and everything.
+        	if (friendsList != null) { friendsList.clearFriends(); }
+        	try { 
+        		mFacebook.logout(getApplicationContext()); // Logout of facebook 
+        	}
+        	catch ( Exception logout_e )
+        	{
+        		System.err.println("Could not log out.");
+        		logout_e.printStackTrace();
+        	}
+	    	SharedPreferences loggedIn = getSharedPreferences("loggedIn", MODE_PRIVATE);
+	    	SharedPreferences.Editor loggedInEditor = loggedIn.edit();
+	    	loggedInEditor.putBoolean("loggedIn", false);
+	    	loggedInEditor.commit();
+	    	Intent restart = new Intent(mainLocation.this, GettingStarted.class);
+	    	startActivity(restart);
+	    }
+		}
+	      
+		});
+	    if (displayedCorrectly)
+	    {
+	    	// Generate main key (K) between client and client
+	    	fillValues();
+
+	    	// Start the B service side -- sending my encrypted location
+	    	Intent bSide = new Intent(this, BServiceSide.class);
+	    	startService(bSide);
+		
+	    	final Button button = (Button) findViewById(R.id.donebutton);
+	    	button.setOnClickListener(new View.OnClickListener() {
+	    		public void onClick(View v) {
+	    			// Start intent to execute Protocol 2
+	    			Intent protocolIntent = new Intent(mainLocation.this, ExecuteProtocol.class);
+	    			mainLocation.this.startActivity(protocolIntent);
+	    		}
+	    	});
+	    }
+	}
+
+	/**
+	 * If a list item is clicked
+	 * we need to toggle the checkbox too
+	 */
+	@Override
+	protected void onListItemClick(ListView l, View v, int position, long id) {
+		// Toggle the checkbox state!
+		if ( v != null ){
+			ExtendedCheckBoxListView CurrentView = (ExtendedCheckBoxListView)v;
+			if ( CurrentView != null ){
+				CurrentView.toggleCheckBoxState();
+			}
+	    }
+	   	super.onListItemClick(l, v, position, id);
+	}
+	
+	
+	/**
+	 * This method reads the user and friends public key from the file and
+	 * computes the shared secret keys and stores them for other apps to access.
+	 */
+	private void fillValues() {
+
+		FileInputStream fIn = null;
+	    InputStreamReader isr = null;
+		try{
+		    char[] inputBuffer = new char[10000];
+		    String data = null;
+		    
+		    //Access the public key of each user in the file
+		    fIn = openFileInput("public.dat");
+		    isr = new InputStreamReader(fIn);
+		    isr.read(inputBuffer);
+	        data = new String(inputBuffer);
+	        Log.d("mainLocation.java", data);
+	        String users[] = data.split("\n");
+	        String appResultString = "";
+	        String publicKeyString = "";
+	        if(users.length > 0){
+	        	if(users[0].length()<4){
+	        		int count = Integer.parseInt(users[0]);
+	        		count = users.length-2; 	        		//The first line is the current user's public key and the last line is a carriage return
+	        		if(count>0){
+	        			//Access the first line and set the user info
+	        			String vals[] = users[1].split(",");
+	        			StringBuffer userInfo = new StringBuffer();
+	        			userInfo.append(userInfo + "Facebook User Name: " + vals[1]+ "\nKey: ");
+	        			if(vals[2].length()>0){
+	        				userInfo.append("Available"); 
+	        			}else{
+	        				userInfo.append("Not Available");
+	        			}
+	        			Log.d("mainLocation.java", "Your info: " + userInfo);
+
+	        			// Line from old version: FBContent.getInstance().setCurrentUserId(vals[0]);
+	   
+	        			//Shared key generation with each friend
+	        			//Access the stored user private key
+        			    ObjectInputStream objInput = null;
+        			    InputStream ip = null;
+        			    
+        			    PrivateKey user_priv = null;
+        			    try {
+        			    	ip = openFileInput("user_priv.dat");
+        					objInput = new ObjectInputStream(ip);
+        					user_priv = (PrivateKey)objInput.readObject();
+        					ip.close();
+        					objInput.close();
+        				} catch (StreamCorruptedException e1) {
+        					// TODO Auto-generated catch block
+        					e1.printStackTrace();
+        				} catch (IOException e1) {
+        					// TODO Auto-generated catch block
+        					e1.printStackTrace();
+        				} catch (ClassNotFoundException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+
+        				//Now for each of the friends' public key, generate a shared key
+	        			// Line from old version: _friends.setText("Friends\n");
+        				Log.d("mainLocation.java","====================== Freind-key-generation starts here. ======================");
+        				Log.d("mainLocation.java", "The count of friends is: " + count);
+	        			for(int i=2; i<(count+1); i++){
+	        				vals = users[i].split(",");
+	        				// Line from old verision: _friends.setText(_friends.getText()+"\n\nName : " + vals[1] + "\nURL:" + vals[2]);
+	        				appResultString += vals[1]+",";
+	        				publicKeyString += vals[1]+",";
+	        				publicKeyString += vals[2]+"#";
+	        				
+	        				try {
+	        					BigInteger p1024 = new BigInteger("FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1" +
+		        						"CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6" +
+		        						"DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE" +
+		        						"386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF", 16);
+		        				BigInteger g = new BigInteger("2", 10);
+		        				BigInteger y = new BigInteger(Base64Coder.decode(vals[2]));
+		        				
+		        				DHPublicKeySpec pubspec = new DHPublicKeySpec(y, p1024, g);
+		        				PublicKey friend_pub = null;
+		        				
+	        					KeyFactory keyF = KeyFactory.getInstance("DH","BC");
+	        					friend_pub = keyF.generatePublic(pubspec);
+	        					
+		        				if(friend_pub != null)
+		        					Log.d("mainLocation.java", "Derived Friend Pub : " + new String(friend_pub.getEncoded()));
+		        				else
+		        					Log.d("mainLocation.java", "Derived Pub : NULL");
+		        				
+		        				KeyAgreement keyAgreement = KeyAgreement.getInstance("DH", "BC");
+		        				keyAgreement.init(user_priv);
+		        				keyAgreement.doPhase(friend_pub, true);
+		        				String sharedsecretBase64 = new String(Base64Coder.encode(keyAgreement.generateSecret()));
+		        				Log.d("mainLocation.java", "vals[1]: " + vals[1]);
+		        				Log.d("mainLocation.java", "Friend: " + friendsList.getFriend(vals[1]).getName() + "\tSharedSecret : " + sharedsecretBase64);
+		        				appResultString += sharedsecretBase64+"#";
+		        				Friend temp = friendsList.getFriend(vals[1]); 
+		        				if ( temp  != null )
+		        				{
+		        					temp.setDHKey(sharedsecretBase64);
+		        				}
+		        				else
+		        					Log.d("mainLocation.java", "Could not find " + vals[1] + ". So could not store DH key in mainLocation.java.");
+	        				} catch (NoSuchAlgorithmException e) {
+	        					// TODO Auto-generated catch block
+	        					e.printStackTrace();
+	        				} catch (NoSuchProviderException e) {
+	        					// TODO Auto-generated catch block
+	        					e.printStackTrace();
+	        				} catch (InvalidKeySpecException e) {
+	        					// TODO Auto-generated catch block
+	        					e.printStackTrace();
+	        				} catch (InvalidKeyException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+	        				
+	        			}
+	        		}
+	        	}
+	        }
+	        /* OLD VERSION LINES:
+	        //The public keys and shared keys are set in FBContent singleton object 
+	        //that is delivered to consuming apps 
+	        FBContent.getInstance().setAppInterfaceResult(appResultString);
+	        FBContent.getInstance().setPublicKeyResult(publicKeyString);
+	        */
+			isr.close();
+			fIn.close();
+		}catch(IOException e){
+			e.printStackTrace(System.err);
+		}catch(Exception e){
+			e.printStackTrace(System.err);
+		}
+		Log.d("mainLocation.java", "====================== Freind-key-generation ends here. ======================");
+	}
+	
+	// --- MENU --- //
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.layout.main_menu, menu);
+		return true;
+	}
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    // Handle item selection
+	    switch (item.getItemId()) {
+	    case R.id.exit:
+	    	 finish();
+	        return true;
+	    case R.id.settings:
+	    	Intent settingsIntent = new Intent(mainLocation.this, Settings.class);
+	    	mainLocation.this.startActivity(settingsIntent);
+	    	return true;
+	    default:
+	        return super.onOptionsItemSelected(item);
+	    }
+	}
+}

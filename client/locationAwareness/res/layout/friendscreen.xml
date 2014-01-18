@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>   
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:background="#CDCEE0">
+	<ListView
+		android:id="@android:id/list"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:layout_weight="1"
+		android:scrollbars="vertical" />
+
+	<TextView
+		android:id="@android:id/empty"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:text="No items...."
+		android:padding="10px" 
+		android:textColor="#000000"/>
+	<Button android:id="@+id/donebutton"
+    	android:layout_width="fill_parent"
+    	android:layout_height="wrap_content"
+    	android:layout_alignParentBottom="true"
+    	android:text="Done" />
+</LinearLayout>

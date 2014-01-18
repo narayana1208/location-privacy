@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  android:background="#FFFF00">
+  
+<ScrollView android:id="@+id/scrollview"
+	android:layout_width="fill_parent" android:layout_height="wrap_content"
+	android:layout_weight="1">
+    
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:gravity="center_horizontal">
+    
+	<TextView  
+	android:id="@+id/header"
+    android:layout_width="fill_parent" 
+    android:layout_height="wrap_content"
+    android:layout_margin="30dp"
+    android:text="Enter Password\n\nThis is to create a public key so that you can encrypt your location. If you previously created a 
+    public key, we could not locate your private key so please generate a new one."
+    />
+    
+    <EditText
+    	android:id="@+id/password"
+    	android:layout_width="250sp"
+    	android:layout_height="wrap_content"
+    	android:password="true"
+    />
+
+    <Button android:id="@+id/newKeyPair"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content" 
+		android:text="Create New Key"
+		android:visibility="visible"
+		android:paddingRight="30dp" 
+		android:paddingLeft="30dp"
+		android:layout_margin="30dp" 
+		android:layout_gravity="right"
+	/>
+	
+    <TextView
+		android:id="@+id/messageDetails"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="message here"
+	/>
+	
+		<Button android:id="@+id/profile" 
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content" 
+		android:text="Goto Facebook Profile"
+		android:visibility="visible"
+		android:paddingRight="30dp" 
+		android:paddingLeft="30dp"
+		android:layout_margin="30dp" 
+	/>
+	<Button android:id="@+id/doneKey"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:text="Finished updating profile"
+	android:visibility="invisible"
+		android:paddingRight="30dp" 
+		android:paddingLeft="30dp"
+		android:layout_margin="30dp" 
+		/>
+	
+	
+	
+</LinearLayout>
+</ScrollView>
+</LinearLayout>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+    
+    <TextView android:id="@+id/proximityText"
+    android:layout_alignParentTop="true"
+    android:textSize="16sp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Range you want to be detected from (in feet): "
+    />
+    
+	<SeekBar android:id="@+id/proximitySlider"
+    android:layout_width="fill_parent" android:layout_height="wrap_content"
+    android:max="5000" android:progress="100"/>
+
+    <TextView android:id="@+id/curGridsize"
+    android:layout_alignParentTop="true"
+    android:textSize="16sp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Current grid size (in feet): "
+    />
+</LinearLayout>

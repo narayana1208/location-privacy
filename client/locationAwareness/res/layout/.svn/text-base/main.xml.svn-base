@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+    
+    <TextView android:id="@+id/nearbyPeople"
+    android:layout_alignParentTop="true"
+    android:textSize="20sp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Friends who are near your location:"
+    />
+    
+    
+    <TextView android:id="@+id/unknownLocPeople"
+    android:layout_alignParentTop="true"
+    android:textSize="20sp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Friends who are not near your location:"
+    />
+    
+    <TextView android:id="@+id/textDisplay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""/>
+    
+    <TextView android:id="@+id/textDisplay2"
+    	android:layout_width="wrap_content"
+    	android:layout_height="wrap_content"
+    	android:text=""/>    
+</LinearLayout>

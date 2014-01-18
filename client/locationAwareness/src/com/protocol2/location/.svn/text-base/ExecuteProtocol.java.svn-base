@@ -1,0 +1,197 @@
+package com.protocol2.location;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import android.app.Activity;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.widget.TextView;
+
+public class ExecuteProtocol extends Activity {
+	
+	// ---- KEY and Facebook values .... //
+	private BigInteger k_1 = BigInteger.valueOf(0); // temporary value TODO: this key is equal to the AES encryption of ( time concatenated with 1 )
+	private BigInteger k_2 = BigInteger.valueOf(0); // temporary value TODO: this key is equal to the AES encryption of ( time concatenated with 2 )
+	private Long myID = 0L; // temporary value TODO: retreive my facebook ID from the facebook API
+	
+	
+	// ----- CONSTANTS ------//
+	private static final BigInteger PRIME = BigInteger.valueOf(28147497699961L);
+	
+	//-----VARIABLES------//
+	private Map<Long, ArrayList<BigInteger>> myLocationsMap = new HashMap<Long, ArrayList<BigInteger>>();
+	private ExtendedCheckBoxListAdapter friendsList;
+	
+
+	// the client class that will interact with the server (self implemented class)
+	private ClientClass mClient; 
+	
+	// Display object -- used for helping to display items on the screen
+	private TextView mDisplay;
+	private TextView mDisplay2;
+	private TextView mNearby;
+	private TextView mNotNearby;
+	
+	
+
+	// to help fpr displaying numbers
+    private static String pad(BigInteger c) {
+    	return  c.toString();
+    }
+	
+	public void onCreate(Bundle savedInstanceState) {
+		
+	    super.onCreate(savedInstanceState);
+	    
+	      // set up GUI
+	      setContentView(R.layout.main);
+	      setTitle("Nearby Friends");
+	      mDisplay = (TextView) findViewById(R.id.textDisplay);
+	      mDisplay2 = (TextView) findViewById(R.id.textDisplay2);
+	      mNearby = (TextView) findViewById(R.id.nearbyPeople);
+	      mNotNearby = (TextView) findViewById(R.id.unknownLocPeople);
+	      
+	      mClient = new ClientClass(this.getString(R.string.IP_ADDRESS), 8080);
+	      
+	      friendsList = ExtendedCheckBoxListAdapter.getInstance(getApplicationContext());
+	      
+	      SharedPreferences mySavedID = getSharedPreferences("myID", MODE_PRIVATE); 
+		  myID = mySavedID.getLong("myID", 0L);
+	      
+		/* display the latitude and longitude on the screen (mostly for debugging purposes)
+	     mDisplay.setText(
+	              new StringBuilder()
+	                      .append("Latitude: ").append(pad(latitude)).append("\nLongitude: ").append(pad(longitude)));
+		 */
+   
+			
+			// Get friend IDs from the friend database
+	      ArrayList<Friend> checkedFriends = friendsList.getChecked();
+	      // Generate an array of friend ids (Longs) to send to the server
+	      long[] checkedFriendIDs = new long[checkedFriends.size()];
+	      int ci = 0;
+	      System.err.println("Checked friends to send to server");
+	      for (Friend f:checkedFriends)
+	      {
+	    	  System.err.println(f.getName() + "\t" + f.getID());
+	    	  checkedFriendIDs[ci] = f.getID();
+	    	  ci++;
+	      }
+	      
+			// Send friend IDs to the server
+	      mClient.sendReadyPacket(myID, checkedFriendIDs);
+			
+	      // Receive info from the server -- get time byte and grid size corresponding to each friend ID:
+	      Map<Long, ArrayList<Byte>> response = mClient.receiveInitialResponse();
+	      Map<Long, BigInteger> k_2Array = new HashMap<Long, BigInteger>();
+	      
+	      // Set up helper variables
+	      GridHandler gridHandler = new GridHandler();
+	      Long friendID = 0L; // temporary value
+	      ArrayList<Byte> timeGridBytes;
+	      int gridsize;
+	      byte timeByte;
+	      AESKeyGenerator keygen = new AESKeyGenerator();  // Create a key generator (that I created)
+	      String dhkey; // declare the string that will hold the diffie helman key
+	      Date curDate;
+	      Long toEncrypt;  
+	      
+	      for( Map.Entry<Long, ArrayList<Byte>> pairs : response.entrySet() )
+	      {
+	    	  // Retrieve friend id and raw value of time and grid
+	    	  friendID = pairs.getKey();
+	    	  timeGridBytes = pairs.getValue();
+	    	  System.err.println("Friend that I'm about to send a location for: id=" + pairs.getKey());
+	    	  
+	    	  // Separate bytes of time and grid
+	    	  timeByte = timeGridBytes.get(0);
+	    	  gridsize = timeGridBytes.get(1);
+	    	  for (int i = 1; i < 5; i ++) {
+	    		  gridsize = gridsize << 8*i;
+	    		  gridsize = gridsize | timeGridBytes.get(i);
+	    	  }
+	    	  
+	    	  // Create the locations converted to the grid size and for every overlapping grid color/type
+	    	  ArrayList<BigInteger> myLocs = new ArrayList<BigInteger>();
+		      myLocs = gridHandler.getGridCoords(this, gridsize);
+		      
+		      // Get Diffie-Helman key corresponding to each friend id
+		      dhkey = (friendsList.getFriend(friendID)).getDHKey();
+		      
+		      // Calculate what to encrypt (time that B-side also encrypted). So here, we match the times of A and B
+		      curDate = new Date();
+		      toEncrypt = ( curDate.getTime() ) >> 12;
+	    	  toEncrypt = toEncrypt & 0xFFFFFFFFFFFFFF00L; // Get rid of the least significant byte
+	    	  toEncrypt = toEncrypt | timeByte; // Add on the time byte that B sent to completely synchronize the times
+		      
+		      // k_1 is different for each friend and each overlapping grid
+		      for (int j = 0; j < 3; j++)
+		      {
+		    	  k_1 = new BigInteger (   keygen.generate_k(  dhkey, (Long.toString( (toEncrypt*10) + (2*j + 1)) )  )   ); // generate k_1 by encrypting time concatenated with 1
+		    	  k_2Array.put( friendID, new BigInteger (keygen.generate_k(dhkey, (Long.toString( (toEncrypt*10) + (2*j + 2) )) ) )); // generate k_2 and store it in an array for later usage
+		    	  myLocs.add( j, (k_1.add(myLocs.get(j))).mod(PRIME) );  
+		      }
+		      
+	    	  // Put the converted and encrypted overlapping grid in the map that will be sent to the server 
+	    	  myLocationsMap.put(friendID, myLocs);
+	      }
+	      
+	    
+			// Send server my info corresponding to the grid size of each friend
+	      	mClient.sendClosenessPacket(myLocationsMap, myID);	
+			
+	      	
+	      	// Receive response from server
+	      Map<Long, ArrayList<BigInteger>> finalResponse = mClient.receiveFinalResponse();
+	 
+	      // Determine which friends are nearby or not and display them:
+	      ArrayList<BigInteger> tempGrids;
+	      for( Map.Entry<Long, ArrayList<BigInteger>> pairs : finalResponse.entrySet() )
+	      {
+	    	  tempGrids = pairs.getValue();
+	    	  for (BigInteger g : tempGrids)
+	    	  {
+	    		  if (  g.equals( k_2Array.get(pairs.getKey()) )  ) // If the final response is k_2, then the friend is nearby
+	    			  mNearby.append( (friendsList.getFriend(pairs.getKey())).getName() );
+	    		  else
+	    			  mNotNearby.append( (friendsList.getFriend(pairs.getKey())).getName() );
+	    	  }
+	      }
+	    
+	    SharedPreferences gridProxTemp = getSharedPreferences("gridProximity", MODE_PRIVATE);
+	    int t = gridProxTemp.getInt("gridProximity", -1);
+	    mDisplay2.setText(new StringBuilder().append("\ngrid size: ").append(Integer.toString(t)));
+	    
+	}
+
+	
+	// --- MENU --- //
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.layout.protocol_menu, menu);
+		return true;
+	}
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    // Handle item selection
+	    switch (item.getItemId()) {
+	    case R.id.back:
+	    	 finish();
+	        return true;
+	    default:
+	        return super.onOptionsItemSelected(item);
+	    }
+	}
+}
+
+

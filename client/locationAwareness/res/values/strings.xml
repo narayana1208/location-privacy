@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, mainLocation!</string>
+    <string name="app_name">Who\'s There?</string>
+    <string name="IP_ADDRESS">184.106.71.177</string>
+</resources>

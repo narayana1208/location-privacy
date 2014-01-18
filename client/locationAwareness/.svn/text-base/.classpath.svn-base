@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="gen"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry kind="lib" path="/Applications/eclipse/plugins/org.apache.commons.httpclient_3.1.0.v201005080502.jar"/>
+	<classpathentry kind="src" path="facebook_android_sdk"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

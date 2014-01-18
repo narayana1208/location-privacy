@@ -1,0 +1,47 @@
+package com.protocol2.location;
+
+import android.app.Activity;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.widget.SeekBar;
+
+public class Settings extends Activity {
+	
+	private SeekBar proximityControl;
+	
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+
+	    super.onCreate(savedInstanceState);
+	    setContentView(R.layout.settings_screen);
+	    
+	    proximityControl = (SeekBar) findViewById(R.id.proximitySlider);
+	    
+	    proximityControl.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+			
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				// Save preference as grid size
+			    SharedPreferences gridProximity = getSharedPreferences("gridProximity", MODE_PRIVATE); // set up a "preference" that will store the first location with respect to grid 1
+			    SharedPreferences.Editor gridEditor = gridProximity.edit();
+			    gridEditor.putInt("gridProximity", (int)(progress/3.2808399)); // save the grid size as a preference
+			    gridEditor.commit();
+				
+			}
+		});
+	   
+	}
+}
